@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-19",
+  "version": "0.5.2",
+  "tests_passed": 319,
+  "installed_smoke_passed": true,
+  "official_oauth_callback_verified_in_loopback_test": true,
+  "model_catalog_and_stream_verified_with_mock": true,
+  "real_chatgpt_authorization_performed": false,
+  "paid_api_called": false,
+  "package_sha256": "a0cb71e00046e6c54f55ca0857643c6946cfd91da313320db9ccd0137986f2cd"
+}

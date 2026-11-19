@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-11",
+  "version": "0.4.0",
+  "tests_passed": true,
+  "tests": 216,
+  "gtk_tests": 42,
+  "session_discovery_tests": 14,
+  "session_service_tests": 7,
+  "work_list_tests": 9,
+  "installed_source_matches": true,
+  "installed_smoke_test_passed": true,
+  "package_excludes_private_data_and_android_artifacts": true,
+  "package_sha256": "81120fec3e68bf05606ffa22e634af9cd284a6ae33a3343b45859af62a897379",
+  "package_bytes": 80216,
+  "real_firefox_session_synced": true,
+  "real_courses_read": 52,
+  "android_development_started": false,
+  "online_write_operations_tested": false,
+  "real_course_assignments_read": 4,
+  "real_assignment_urls_from_official_list": true,
+  "updated_workspace_opened": true
+}

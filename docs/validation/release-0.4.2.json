@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-11",
+  "version": "0.4.2",
+  "tests_passed": true,
+  "tests": 286,
+  "gtk_tests": 56,
+  "ai_protocol_tests": 59,
+  "new_image_tests": 33,
+  "installed_source_matches": true,
+  "installed_modules": 16,
+  "installed_smoke_test_passed": true,
+  "multimodal_local_http_bytes_verified": true,
+  "image_preview_verified": true,
+  "image_cache_hash_and_permissions_verified": true,
+  "image_change_pre_submit_guard_verified": true,
+  "real_paid_api_called": false,
+  "real_assignment_read_or_write": false,
+  "user_api_key_modified": false,
+  "old_user_windows_closed": false,
+  "android_development_started": false,
+  "package_private_data_excluded": true,
+  "package_sha256": "25b2da0975817fea2562afc6da77ac734a5aefbe3cf0779636d0e3961ec6ebaf",
+  "package_bytes": 92982,
+  "verification_notes": [
+    "一次与界面截图并行的全量测试中，原关闭耗时断言出现50ms>20ms；隔离复测及随后完整286项复测均通过。"
+  ],
+  "new_version_window_opened": true
+}

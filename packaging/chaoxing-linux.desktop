@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=学习通 Linux
+Name[en]=Chaoxing Linux
+Comment=课程后台、联网 AI 作业、签到和 USB 手机控制
+Exec=chaoxing-linux
+Icon=chaoxing-linux
+Terminal=false
+Categories=Education;
+StartupNotify=true

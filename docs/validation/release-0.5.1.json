@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-19",
+  "version": "0.5.1",
+  "tests_passed": 306,
+  "installed_smoke_passed": true,
+  "openai_responses_verified_with_mock": true,
+  "paid_api_called": false,
+  "review_uses_ai_on_explicit_request": true,
+  "earlier_generated_word_and_pdf_deleted": true,
+  "package_sha256": "6c0a5af096ce0c3fe6ad9fb2e6756045ff22596cccc570e9ddc22e3400a2e6c4"
+}

@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-10",
+  "version": "0.2.0",
+  "tests": 129,
+  "tests_passed": true,
+  "package_sha256": "5c0405d0dcd1027e6181a0f8e17b27da1dc80d842b64422d2e59f89147b57aa2",
+  "package_bytes": 59028,
+  "installed_source_matches": true,
+  "credentials_permissions": "0600",
+  "package_excludes_credentials_and_third_party_apks": true,
+  "online_write_operations_tested": false,
+  "real_courses_read": 52,
+  "real_plan_tasks_read": 40
+}

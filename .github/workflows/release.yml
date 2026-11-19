@@ -1,0 +1,46 @@
+name: Publish Debian package
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build and verify the tagged package
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'from chaoxing_linux import __version__; print(__version__)')
+          test "$GITHUB_REF_NAME" = "v$version"
+          bash scripts/build-deb.sh
+          cd dist
+          pkg="chaoxing-linux_${version}_all.deb"
+          test "$(dpkg-deb -f "$pkg" Version)" = "$version"
+          sha256sum "$pkg" > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: dist/
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: debian-package
+          path: dist
+      - name: Publish installer and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.deb dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --title "$GITHUB_REF_NAME" --generate-notes

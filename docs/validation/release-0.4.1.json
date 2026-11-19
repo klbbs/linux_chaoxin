@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-11",
+  "version": "0.4.1",
+  "tests_passed": true,
+  "tests": 253,
+  "gtk_tests": 50,
+  "ai_protocol_tests": 47,
+  "installed_source_matches": true,
+  "installed_smoke_test_passed": true,
+  "typed_settings_bool_strip_regression_fixed": true,
+  "model_search_tools_supported": true,
+  "responses_native_search_supported": true,
+  "deepseek_flash_model": "deepseek-flash",
+  "deepseek_flash_mode": "tools",
+  "deepseek_official_search_supported": true,
+  "real_paid_api_called": false,
+  "user_api_key_modified": false,
+  "old_user_windows_closed": false,
+  "online_course_assignment_write_operations": false,
+  "android_development_started": false,
+  "package_sha256": "14740c0731fdd250983c198d5bda4d14222a03f6a3b17da420e6272ee58d67e5",
+  "package_bytes": 85634
+}

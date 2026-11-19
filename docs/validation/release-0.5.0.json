@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-19",
+  "version": "0.5.0",
+  "tests_passed": 303,
+  "installed_smoke_passed": true,
+  "installed_source_verified": true,
+  "package_sha256": "ec14da4fc93887612dc5d61fc0413e1761090f5b483215e3cf8c886d060c5578",
+  "package_bytes": 111446,
+  "connected_phone_for_testing": false,
+  "android_emulator_used": false,
+  "rea_course_navigation_evidence": "ev_94e43e2520c95a7f4b0c9d1ab500794e2cd517e1100cf36e94340a711c0b79bc",
+  "live_validation": {
+    "existing_session": true,
+    "course_count": 51,
+    "exported_courses": 1,
+    "status": "partial",
+    "counts": {
+      "chapters": 40,
+      "assignments": 10,
+      "materials": 96
+    },
+    "coverage": {
+      "chapters": {
+        "items": 40,
+        "with_text": 0
+      },
+      "assignments": {
+        "items": 10,
+        "with_text": 8,
+        "questions": 8,
+        "attachments": 20
+      },
+      "materials": {
+        "items": 96,
+        "with_text": 32
+      },
+      "issue_types": {
+        "2 项嵌入附件保留名称，原页未提供可用下载链接": 4,
+        "没有可用的已提交作业只读详情，已保留标题与状态": 2,
+        "3 项嵌入附件保留名称，原页未提供可用下载链接": 4,
+        "没有可读取的下载链接，已保留资料名称": 57,
+        "没有可提取的章节文字": 33
+      }
+    },
+    "new_attempts_or_writes": false
+  },
+  "docx_and_pdf_layout_reviewed": true,
+  "published_pdf_pages": 26,
+  "ai_endpoint_verified_by_mock_only": true
+}

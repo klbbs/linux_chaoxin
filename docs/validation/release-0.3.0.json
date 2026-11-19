@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-10",
+  "version": "0.3.0",
+  "tests": 174,
+  "tests_passed": true,
+  "gtk_tests": 30,
+  "map_tests": 20,
+  "package_sha256": "67e1aaef9194dd7a1b3e041a709a52c46b7938663ee8acb830259f8094eac14f",
+  "package_bytes": 72512,
+  "installed_source_matches": true,
+  "package_excludes_credentials_research_and_third_party_apks": true,
+  "online_sign_submitted": false,
+  "actual_learningtong_activity_list_read": true,
+  "actual_learningtong_presign_pages_read": 2,
+  "sign_mode_parameter_semantics_fully_verified": false,
+  "miniapp_used_for": "UI interaction design only",
+  "map_public_search_and_single_visible_viewport_tested": true,
+  "installed_gtk_smoke_test_passed": true,
+  "updated_workspace_opened": true
+}

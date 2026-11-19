@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+/dist/
+/docs/research/
+/docs/validation/*
+!/docs/validation/release-*.json
+*.apk
+*.dex
+*.log
+*.sqlite*
+cookies.txt
+settings.json
+study-data/
+
+# Local screenshots outside the published documentation
+/docs/images/ai-network-popup.png
+/docs/images/attendance-page-gesture.png
+/docs/images/attendance-page-location.png
+/docs/images/launcher.png
+/docs/images/work-list-page.png
