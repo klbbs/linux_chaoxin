@@ -1,0 +1,19 @@
+{
+  "version": "0.6.0",
+  "tests_passed": 320,
+  "installed_source_verified": true,
+  "desktop_launch_verified": true,
+  "desktop_pages_checked": 8,
+  "window_sizes_checked": [
+    [
+      1166,
+      700
+    ],
+    [
+      800,
+      600
+    ]
+  ],
+  "horizontal_overflow_observed": false,
+  "connected_phone_for_testing": false
+}

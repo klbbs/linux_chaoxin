@@ -11,6 +11,6 @@
 - [工作台架构](ARCHITECTURE.md)
 - [更新记录](CHANGELOG.md)
 - [实验Waydroid环境](WAYDROID.md)
-- [本次版本验证摘要](validation/release-0.5.2.json)
+- [当前版本的界面与发布验证](validation/release-0.6.0.json)
 
 真实账号的Cookie、密码、API Key和任务历史保存在用户私有目录，文档只记录脱敏后的集成结论。

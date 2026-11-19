@@ -11,6 +11,8 @@ for required in src/chaoxing_linux/__main__.py assets/icon.svg scripts/install-h
     [[ -f "$project_dir/$required" ]] || { echo "缺少文件：$required" >&2; exit 1; }
 done
 command -v dpkg-deb >/dev/null || { echo '需要 dpkg-deb。' >&2; exit 1; }
+version=$(cd -- "$project_dir/src" && python3 -B -c 'from chaoxing_linux import __version__; print(__version__)')
+package_path="$output_dir/chaoxing-linux_${version}_all.deb"
 stage=$(mktemp -d)
 trap 'rm -rf -- "$stage"' EXIT
 install -d "$stage/DEBIAN" "$stage/usr/lib/chaoxing-linux/chaoxing_linux" \
@@ -34,14 +36,14 @@ export PYTHONPATH="/usr/lib/chaoxing-linux${PYTHONPATH:+:$PYTHONPATH}"
 exec /usr/bin/python3 -m chaoxing_linux "$@"
 WRAPPER
 chmod 0755 "$stage/usr/bin/chaoxing-linux"
-cat > "$stage/DEBIAN/control" <<'CONTROL'
+cat > "$stage/DEBIAN/control" <<CONTROL
 Package: chaoxing-linux
-Version: 0.5.2
+Version: $version
 Section: education
 Priority: optional
 Architecture: all
 Maintainer: Chaoxing Linux Local Build <noreply@localhost>
-Depends: python3, python3-gi, gir1.2-gtk-3.0, python3-dbus, python3-cryptography
+Depends: python3, python3-gi, gir1.2-gtk-3.0, python3-dbus, python3-cryptography, python3-gi-cairo
 Recommends: libreoffice-writer, fonts-noto-cjk, poppler-utils, adb
 Suggests: antiword, catdoc, bubblewrap, waydroid, weston
 Description: Linux desktop workspace for Chaoxing courses and Android phones
@@ -52,5 +54,5 @@ Description: Linux desktop workspace for Chaoxing courses and Android phones
 CONTROL
 chmod 0644 "$stage/DEBIAN/control"
 mkdir -p -- "$output_dir"
-dpkg-deb --root-owner-group --build "$stage" "$output_dir/chaoxing-linux_0.5.2_all.deb"
-echo "已生成：$output_dir/chaoxing-linux_0.5.2_all.deb"
+dpkg-deb --root-owner-group --build "$stage" "$package_path"
+echo "已生成：$package_path"

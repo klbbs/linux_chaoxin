@@ -13,39 +13,29 @@ class ReviewPanel:
         self.busy = False
         self.files = {}
 
-        page.pack_start(label('按需使用设置中的 AI，把学习通课程整理成 Word 和 PDF。', 'subtitle'), False, False, 0)
-        page.pack_start(label('选择课程'), False, False, 0)
-        self.course_select = window._course_selector(page)
+        settings = window._panel(page, '整理课程资料')
+        self.course_select = window._course_selector(settings)
         self.course_select.connect('changed', self._refresh_controls)
-
-        settings = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        settings.get_style_context().add_class('card')
-        page.pack_start(settings, False, False, 0)
-        row = window._row(settings)
-        row.pack_start(label('保存位置'), False, False, 0)
+        settings.pack_start(label('保存位置', 'subtitle'), False, False, 0)
         self.folder = Gtk.FileChooserButton(title='选择复习资料保存位置', action=Gtk.FileChooserAction.SELECT_FOLDER)
-        self.folder.set_width_chars(30)
+        self.folder.set_width_chars(22)
         self.folder.set_hexpand(True)
-        row.pack_start(self.folder, True, True, 0)
+        settings.pack_start(self.folder, False, False, 0)
         document_dir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS)
         default_dir = Path(document_dir) if document_dir else Path.home()
         self.folder.set_filename(str(default_dir if default_dir.is_dir() else Path.home()))
         self.folder.connect('file-set', self._refresh_controls)
 
-        settings.pack_start(label('点击生成后才读取课程正文并发送给配置的模型。', 'subtitle'), False, False, 0)
+        settings.pack_start(label('生成时会将所选课程的章节、作业和资料发送给已配置的 AI。', 'subtitle'), False, False, 0)
 
-        row = window._row(page)
+        row = window._row(settings)
         self.export_button = window._button(row, '用 AI 生成 Word 和 PDF', self.start, primary=True)
-        window._button(row, 'AI 设置', lambda _: window.stack.set_visible_child_name('settings'))
+        window._button(row, 'AI 设置', lambda _: self.open_ai_settings())
         self.cancel_button = window._button(row, '停止', self.cancel)
+        results = window._panel(page, '导出结果')
         self.progress = Gtk.ProgressBar(show_text=True)
         self.progress.set_text('尚未开始')
-        page.pack_start(self.progress, False, False, 0)
-
-        results = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        results.get_style_context().add_class('card')
-        page.pack_start(results, False, False, 0)
-        results.pack_start(label('导出结果', 'section-title'), False, False, 0)
+        results.pack_start(self.progress, False, False, 0)
         self.notice = label('先刷新或同步课程，再选择要复习的课程。', 'subtitle')
         self.notice.set_max_width_chars(72)
         results.pack_start(self.notice, False, False, 0)
@@ -64,6 +54,10 @@ class ReviewPanel:
         results.pack_start(self.issues, False, False, 0)
         self.issues.set_no_show_all(True)
         self._refresh_controls()
+
+    def open_ai_settings(self):
+        self.window.settings_sections.set_visible_child_name('ai')
+        self.window.stack.set_visible_child_name('settings')
 
     def _refresh_controls(self, *_):
         self.export_button.set_sensitive(not self.busy and self.course_select.get_active() >= 0 and bool(self.folder.get_filename()))

@@ -21,7 +21,7 @@ class PackagingTests(unittest.TestCase):
             shutil.copytree(PROJECT / directory, target / directory)
         package = target / 'src/chaoxing_linux'
         package.mkdir(parents=True)
-        (package / '__init__.py').write_text('', encoding='utf-8')
+        (package / '__init__.py').write_text('__version__ = "1.2.3"\n', encoding='utf-8')
         (package / '__main__.py').write_text(
             'import json, sys\nprint(json.dumps(sys.argv[1:]))\n', encoding='utf-8')
         (target / 'assets').mkdir()
@@ -51,12 +51,12 @@ class PackagingTests(unittest.TestCase):
             root.mkdir()
             self.make_fixture(root)
             self.run_command('bash', str(root / 'scripts/build-deb.sh'))
-            deb = root / 'dist/chaoxing-linux_0.5.2_all.deb'
+            deb = root / 'dist/chaoxing-linux_1.2.3_all.deb'
             self.assertTrue(deb.is_file())
             fields = self.run_command('dpkg-deb', '-f', str(deb)).stdout
             self.assertIn('Architecture: all', fields)
-            self.assertIn('Version: 0.5.2', fields)
-            self.assertIn('Depends: python3, python3-gi, gir1.2-gtk-3.0, python3-dbus, python3-cryptography', fields)
+            self.assertIn('Version: 1.2.3', fields)
+            self.assertIn('Depends: python3, python3-gi, gir1.2-gtk-3.0, python3-dbus, python3-cryptography, python3-gi-cairo', fields)
             archive = subprocess.run(['dpkg-deb', '--fsys-tarfile', str(deb)],
                                      check=True, capture_output=True).stdout
             tar_path = root / 'contents.tar'

@@ -24,51 +24,22 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Pango
 
-CSS = b"""
-window { background: #f3f6fb; color: #18304b; }
-.sidebar { background: #15283f; padding: 24px 14px; }
-.brand { color: #ffffff; font-size: 25px; font-weight: bold; }
-.side-note { color: #a6b8ce; }
-.sidebar button { background: transparent; color: #d8e4f4; border: 0; padding: 13px; box-shadow: none; }
-.sidebar button:hover { background: #284664; }
-.content { padding: 24px; }
-.title { font-size: 25px; font-weight: bold; }
-.subtitle { color: #61758b; }
-.result-success { color: #1d7047; }
-.result-error { color: #b23232; }
-.source-link, .source-link label { color: #1c5cbb; }
-.card { background: #ffffff; border: 1px solid #dfE7f1; border-radius: 10px; padding: 18px; }
-.section-title { font-size: 17px; font-weight: bold; }
-button { background-image: none; background-color: #ffffff; color: #18304b; padding: 8px 13px; border-radius: 6px; box-shadow: none; }
-.primary { background: #2868cf; color: white; border-color: #2868cf; }
-button:disabled, .primary:disabled { background-color: #eef1f5; color: #667282; border-color: #d4dce6; }
-.status { background: #e6eefb; padding: 10px 16px; }
-textview, textview text { background: #ffffff; color: #18304b; }
-entry { background-image: none; background-color: #ffffff; color: #18304b; padding: 7px; }
-treeview.view { background-color: #ffffff; color: #18304b; }
-progressbar text { color: #18304b; }
-spinbutton, spinbutton entry { color: #18304b; background-color: #ffffff; }
-/* Popup menus are separate GTK surfaces and need their own theme rules. */
-combobox, combobox button, combobox button:hover, combobox button:checked,
-combobox button:active, combobox button:disabled, combobox cellview,
-combobox cellview:selected, combobox cellview:disabled {
-    background-image: none; background-color: #ffffff; color: #111111;
-}
-combobox button:disabled, combobox cellview:disabled { color: #596575; }
-combobox arrow { color: #111111; }
-menu, menuitem, menuitem label, .menu, .menuitem, popover, popover.background,
-menuitem:hover, menuitem:selected, menuitem:checked,
-menuitem:hover label, menuitem:selected label, menuitem:checked label {
-    background-image: none; background-color: #ffffff; color: #111111;
-    text-shadow: none;
-}
-menuitem:hover, menuitem:selected, menuitem:checked { box-shadow: inset 3px 0 #2868cf; }
-menuitem:disabled, menuitem:disabled label { background-color: #ffffff; color: #596575; }
-popover modelbutton, popover modelbutton label, popover modelbutton:hover,
-popover modelbutton:selected, popover modelbutton:checked {
-    background-image: none; background-color: #ffffff; color: #111111;
-}
-"""
+from .workspace_theme import WORKSPACE_CSS
+from .home_ui import HOME_CSS, build_home
+
+
+NAVIGATION = (
+    ('home', '学习概览', 'view-grid-symbolic'),
+    ('courses', '课程后台', 'accessories-dictionary-symbolic'),
+    ('work', '作业 AI', 'document-edit-symbolic'),
+    ('review', '复习资料', 'folder-documents-symbolic'),
+    ('sign', '签到', 'find-location-symbolic'),
+    ('phone', '手机控制', 'phone-symbolic'),
+    ('jobs', '任务记录', 'document-open-recent-symbolic'),
+    ('settings', '设置', 'preferences-system-symbolic'),
+)
+
+
 def constrain_combo(combo):
     for cell in combo.get_cells():
         if isinstance(cell, Gtk.CellRendererText):
@@ -124,7 +95,7 @@ def label(text='', style=None, wrap=True):
     item = Gtk.Label(label=text, xalign=0)
     item.set_line_wrap(wrap)
     item.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-    item.set_selectable(style not in ('brand', 'side-note', 'title', 'section-title'))
+    item.set_selectable(style not in ('brand', 'nav-caption', 'version', 'title', 'section-title'))
     if style:
         item.get_style_context().add_class(style)
     return item
@@ -176,44 +147,101 @@ class Window(Gtk.Window):
         self.phone_frame_serial = None
         self.course_job_id = None
         self.course_points = {}
-        self.set_default_size(1240, 880)
+        display = Gdk.Display.get_default()
+        monitor = display.get_primary_monitor() or display.get_monitor(0)
+        area = monitor.get_workarea()
+        self.set_default_size(min(1190, area.width - 32), min(820, area.height - 68))
         self.set_position(Gtk.WindowPosition.CENTER)
         self.connect('destroy', self._destroy)
         self.connect('delete-event', self._close_request)
-        provider = Gtk.CssProvider()
-        provider.load_from_data(CSS)
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.add(outer)
+        screen = self.get_screen()
+        if not getattr(screen, '_chaoxing_theme', None):
+            provider = Gtk.CssProvider()
+            provider.load_from_data((WORKSPACE_CSS + HOME_CSS).encode())
+            Gtk.StyleContext.add_provider_for_screen(screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            screen._chaoxing_theme = provider
+
+        self.get_style_context().add_class('workspace-root')
         body = Gtk.Box()
-        outer.pack_start(body, True, True, 0)
-        side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        side.get_style_context().add_class('sidebar')
-        side.set_size_request(190, -1)
-        body.pack_start(side, False, False, 0)
-        side.pack_start(label('学习通', 'brand'), False, False, 8)
-        side.pack_start(label('LINUX 工作台', 'side-note'), False, False, 0)
-        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
-        body.pack_start(self.stack, True, True, 0)
+        self.add(body)
+        self.side = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.side.get_style_context().add_class('sidebar')
+        self.side.set_size_request(172, -1)
+        body.pack_start(self.side, False, False, 0)
+        self.rail_text = []
+        self.nav_buttons = {}
+        self.compact = False
+        brand = Gtk.Box(spacing=9)
+        brand.get_style_context().add_class('brand-row')
+        mark = Gtk.Image.new_from_icon_name('accessories-dictionary-symbolic', Gtk.IconSize.LARGE_TOOLBAR)
+        mark.get_style_context().add_class('brand-mark')
+        brand.pack_start(mark, False, False, 0)
+        wordmark = label('学习通', 'brand', False)
+        brand.pack_start(wordmark, False, False, 0)
+        self.rail_text.append(wordmark)
+        self.side.pack_start(brand, False, False, 0)
+
+        main_column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        body.pack_start(main_column, True, True, 0)
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=130)
+        self.stack.set_hhomogeneous(False)
+        self.stack.set_vhomogeneous(False)
+        main_column.pack_start(self.stack, True, True, 0)
         self.pages = {}
-        for name, title in [('home', '概览'), ('courses', '课程后台'), ('work', '作业 AI'), ('review', '复习资料'), ('sign', '签到'), ('phone', '手机控制'), ('settings', '设置'), ('jobs', '任务记录')]:
-            button = Gtk.Button(label=title)
-            button.connect('clicked', lambda _, n=name: self.stack.set_visible_child_name(n))
-            side.pack_start(button, False, False, 0)
+        group = None
+        for name, title, icon in NAVIGATION:
+            if name == 'phone':
+                self.side.pack_start(Gtk.Box(), True, True, 0)
+            if name in ('home', 'phone'):
+                caption = label('学习空间' if name == 'home' else '工具', 'nav-caption', False)
+                self.rail_text.append(caption)
+                self.side.pack_start(caption, False, False, 0)
+            button = Gtk.RadioButton.new_from_widget(group)
+            if group is None:
+                group = button
+            button.set_mode(False)
+            button.set_tooltip_text(title)
+            button.get_accessible().set_name(title)
+            button.get_style_context().add_class('nav-button')
+            row = Gtk.Box(spacing=11)
+            row.pack_start(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU), False, False, 0)
+            text = Gtk.Label(label=title, xalign=0)
+            row.pack_start(text, False, False, 0)
+            self.rail_text.append(text)
+            button.add(row)
+            button.connect('clicked', self._navigate, name)
+            self.side.pack_start(button, False, False, 0)
+            self.nav_buttons[name] = button
             scroll = Gtk.ScrolledWindow()
-            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-            page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+            scroll.get_style_context().add_class('content-scroll')
+            scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+            page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
             page.get_style_context().add_class('content')
             scroll.add(page)
             self.stack.add_named(scroll, name)
             self.pages[name] = page
-            page.pack_start(label(title, 'title'), False, False, 0)
-        side.pack_end(label('课程、作业与手机\n在一个窗口中管理', 'side-note'), False, False, 8)
-        self.status = label('就绪。先在设置同步学习通登录状态并配置 AI，或打开手机控制。', 'status')
-        self.status.set_lines(2)
+            if name != 'home':
+                heading = Gtk.Box(spacing=16)
+                heading.get_style_context().add_class('page-heading')
+                heading.pack_start(label(title, 'title', False), False, False, 0)
+                line = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL, valign=Gtk.Align.CENTER)
+                heading.pack_start(line, True, True, 0)
+                page.pack_start(heading, False, False, 0)
+        self.side.pack_start(Gtk.Separator(), False, False, 7)
+        version = label(f'Linux  ·  v{__version__}', 'version', False)
+        self.side.pack_start(version, False, False, 0)
+        self.rail_text.append(version)
+
+        status_bar = Gtk.Box(spacing=8)
+        status_bar.get_style_context().add_class('status-strip')
+        status_bar.pack_start(Gtk.Image.new_from_icon_name('dialog-information-symbolic', Gtk.IconSize.MENU), False, False, 0)
+        self.status = label('工作台已就绪', 'status', False)
         self.status.set_ellipsize(Pango.EllipsizeMode.END)
-        self.status.set_max_width_chars(110)
-        outer.pack_end(self.status, False, False, 0)
+        self.status.set_width_chars(1)
+        status_bar.pack_start(self.status, True, True, 0)
+        main_column.pack_end(status_bar, False, False, 0)
+        self.stack.connect('notify::visible-child-name', self._sync_navigation)
+        self.connect('size-allocate', self._fit_navigation)
         self._home()
         self._courses()
         self._work()
@@ -364,55 +392,67 @@ class Window(Gtk.Window):
         return entry
 
     def _home(self):
-        page = self.pages['home']
-        page.pack_start(label('在桌面管理课程、作业、复习资料、签到和手机。', 'section-title'), False, False, 0)
-        page.pack_start(label('账号服务复用可读取的本机学习通已登录网页会话：先在设置同步登录状态。手机控制操作已通过 USB 调试授权的设备，连接手机不会自动复制应用私有登录状态。', 'subtitle'), False, False, 0)
-        for title, text, target in [
-            ('课程后台', '读取课程、查看待完成内容、生成执行计划，并在后台跟踪任务进度。', 'courses'),
-            ('作业 AI', '选择课程并读取作业列表，选定作业后读题，查看并编辑答案，再保存或提交。', 'work'),
-            ('复习资料', '整理课程章节、作业与课程资料，导出 Word 和 PDF。', 'review'),
-            ('签到', '读取课程活动并按活动要求提供签到码、位置或二维码信息；结果以服务返回为准。', 'sign'),
-            ('手机控制', '在桌面查看手机画面、点击、输入文字，或打开独立手机控制窗口。', 'phone'),
-        ]:
-            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-            card.get_style_context().add_class('card')
-            page.pack_start(card, False, False, 0)
-            card.pack_start(label(title, 'section-title'), False, False, 0)
-            card.pack_start(label(text, 'subtitle'), False, False, 0)
-            self._button(card, '打开' + title, lambda _, n=target: self.stack.set_visible_child_name(n))
-        row = self._row(page)
-        self._button(row, '前往设置', lambda _: self.stack.set_visible_child_name('settings'), True)
-        self._button(row, '旧兼容环境启动器', lambda _: subprocess.Popen([sys.executable, '-m', 'chaoxing_linux', '--legacy-launcher']))
+        build_home(self, self.pages['home'])
+
+    def _navigate(self, button, name):
+        if button.get_active() and self.stack.get_visible_child_name() != name:
+            self.stack.set_visible_child_name(name)
+
+    def _sync_navigation(self, *_):
+        name = self.stack.get_visible_child_name()
+        if name in self.nav_buttons:
+            self.nav_buttons[name].set_active(True)
+
+    def _fit_navigation(self, _, allocation):
+        compact = allocation.width < 920 or allocation.height < 580
+        if compact != self.compact:
+            self.compact = compact
+            for widget in self.rail_text:
+                widget.set_visible(not compact)
+            for button in self.nav_buttons.values():
+                button.get_child().set_halign(Gtk.Align.CENTER if compact else Gtk.Align.FILL)
+            style = self.side.get_style_context()
+            context = self.get_style_context()
+            if compact:
+                style.add_class('compact')
+                context.add_class('tight-content')
+            else:
+                style.remove_class('compact')
+                context.remove_class('tight-content')
+            self.side.set_size_request(54 if compact else 172, -1)
 
     def _course_selector(self, page):
         selector = constrain_combo(Gtk.ComboBoxText())
         selector.set_hexpand(True)
         row = self._row(page)
+        row.pack_start(label('课程', 'subtitle', False), False, False, 0)
+        selector.get_accessible().set_name('课程')
         row.pack_start(selector, True, True, 0)
         self._button(row, '刷新课程', lambda button: self._request('courses', done=self._courses_loaded, button=button))
         return selector
 
     def _courses(self):
         page = self.pages['courses']
-        page.pack_start(label('先读取课程，再查看执行计划。任务在后台运行，关闭进度页不会终止任务。', 'subtitle'), False, False, 0)
-        self.course_select = self._course_selector(page)
-        row = self._row(page)
+        plan = self._panel(page, '课程与计划')
+        self.course_select = self._course_selector(plan)
+        row = self._row(plan)
         self._button(row, '查看课程计划', lambda _: self._course_action('course_plan'), True)
         row.pack_start(label('播放速度'), False, False, 0)
         self.course_speed = Gtk.SpinButton.new_with_range(1.0, 2.0, 0.1)
         self.course_speed.set_value(1.0)
         row.pack_start(self.course_speed, False, False, 0)
         self._button(row, '后台执行课程', lambda _: self._course_action('course_run'))
-        row = self._row(page)
+        row = self._row(plan)
         self.solve_quizzes = Gtk.CheckButton(label='AI 处理章节测验')
         self.submit_quizzes = Gtk.CheckButton(label='正式提交章节测验答案')
         row.pack_start(self.solve_quizzes, False, False, 0)
         row.pack_start(self.submit_quizzes, False, False, 0)
+        tracking = self._panel(page, '章节进度')
         self.course_notice = label('尚未读取课程计划。', 'subtitle')
-        page.pack_start(self.course_notice, False, False, 0)
+        tracking.pack_start(self.course_notice, False, False, 0)
         self.course_progress = Gtk.ProgressBar(show_text=True)
         self.course_progress.set_text('尚未开始')
-        page.pack_start(self.course_progress, False, False, 0)
+        tracking.pack_start(self.course_progress, False, False, 0)
         self.course_store = Gtk.ListStore(str, str, str, str)
         self.course_tree = Gtk.TreeView(model=self.course_store)
         self.course_tree.set_tooltip_column(3)
@@ -432,15 +472,15 @@ class Window(Gtk.Window):
         scroll.set_min_content_height(250)
         scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scroll.add(self.course_tree)
-        page.pack_start(scroll, True, True, 0)
-        page.pack_start(label('执行动态', 'section-title'), False, False, 0)
+        tracking.pack_start(scroll, True, True, 0)
+        events = self._panel(page, '执行动态')
         self.course_events, scroll = textbox(95)
-        page.pack_start(scroll, False, False, 0)
-        put(self.course_events, '任务开始后将在这里显示中文进度。')
+        events.pack_start(scroll, False, False, 0)
+        put(self.course_events, '等待任务开始。')
         details = Gtk.Expander(label='详情 · 原始返回数据')
         self.course_output, scroll = textbox(200)
         details.add(scroll)
-        page.pack_start(details, False, False, 0)
+        events.pack_start(details, False, False, 0)
 
     def _courses_loaded(self, result):
         self.courses = result.get('courses', []) if isinstance(result, dict) else result
@@ -506,40 +546,44 @@ class Window(Gtk.Window):
         self.work_list_generation = 0
         self.work_image_cache_root = None
         self.work_image_errors = []
-        page.pack_start(label('选择课程 → 读取作业列表 → 选择作业 → 读取题目。答案可编辑，保存与正式提交分别操作。', 'subtitle'), False, False, 0)
-        self.work_course = self._course_selector(page)
+        selection = self._panel(page, '选择作业')
+        self.work_course = self._course_selector(selection)
         self.work_course.connect('changed', self._work_course_changed)
-        row = self._row(page)
-        self.work_list_button = self._button(row, '读取作业列表', self._load_work_list)
+        row = self._row(selection)
         self.work_select = constrain_combo(Gtk.ComboBoxText())
         self.work_select.set_hexpand(True)
         self.work_select.connect('changed', self._work_selection_changed)
+        row.pack_start(label('作业', 'subtitle', False), False, False, 0)
+        self.work_select.get_accessible().set_name('作业')
         row.pack_start(self.work_select, True, True, 0)
+        self.work_list_button = self._button(row, '读取作业列表', self._load_work_list)
         self.work_list_note = label('先同步登录状态或刷新课程，再读取所选课程的作业。', 'subtitle')
-        page.pack_start(self.work_list_note, False, False, 0)
+        selection.pack_start(self.work_list_note, False, False, 0)
         self.work_link_expander = Gtk.Expander(label='高级 · 手动填写作业链接')
         advanced = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.work_url = self._entry(advanced, '作业链接', '选作业后自动填写，也可手动粘贴学习通作业链接')
         self.work_url.connect('changed', self._work_url_changed)
         self.work_link_expander.add(advanced)
-        page.pack_start(self.work_link_expander, False, False, 0)
-        row = self._row(page)
+        selection.pack_start(self.work_link_expander, False, False, 0)
+        solver = self._panel(page, '解题方式')
+        row = self._row(solver)
         self.work_search = Gtk.CheckButton(label='允许模型联网')
         self.work_search.set_active(True)
         row.pack_start(self.work_search, False, False, 0)
         self.work_submit_check = Gtk.CheckButton(label='一键完成后正式提交（未选则保存草稿）')
         row.pack_start(self.work_submit_check, False, False, 0)
-        page.pack_start(label('允许不代表每题都会搜索，以实际调用和来源为准。联网方式在设置中选择。', 'subtitle'), False, False, 0)
-        row = self._row(page)
+        self.work_search.set_tooltip_text('模型按需搜索，解题后可查看每题的来源。联网方式可在设置中调整。')
+        row = self._row(solver)
         self.work_read_button = self._button(row, '读取题目', lambda _: self._work_action('work_load'))
         self.work_solve_button = self._button(row, 'AI 解答', lambda _: self._work_action('work_solve'))
         self.work_complete_button = self._button(row, '一键完成', lambda _: self._work_action('work_complete'), True)
         self.work_page_button = self._button(row, '查看官方作业页', self._open_work_page)
+        answers = self._panel(page, '题目与答案')
         self.work_note = label('尚未读取作业。', 'subtitle')
-        page.pack_start(self.work_note, False, False, 0)
+        answers.pack_start(self.work_note, False, False, 0)
         self.work_image_notice = label('读取题目后显示题图载入状态。', 'subtitle')
         self.work_image_notice.set_max_width_chars(90)
-        page.pack_start(self.work_image_notice, False, False, 0)
+        answers.pack_start(self.work_image_notice, False, False, 0)
         self.answer_store = Gtk.ListStore(str, str, str)
         tree = Gtk.TreeView(model=self.answer_store)
         for index, title in enumerate(('题号', '题目', '答案（双击编辑）')):
@@ -547,6 +591,7 @@ class Window(Gtk.Window):
             renderer.set_property('wrap-width', 440 if index == 1 else 280)
             renderer.set_property('wrap-mode', 2)
             renderer.set_property('yalign', 0.0)
+            renderer.set_property('ypad', 8)
             if index == 2:
                 renderer.set_property('editable', True)
                 renderer.connect('edited', self._answer_edited)
@@ -556,21 +601,21 @@ class Window(Gtk.Window):
         scroll = Gtk.ScrolledWindow()
         scroll.set_min_content_height(220)
         scroll.add(tree)
-        page.pack_start(scroll, True, True, 0)
+        answers.pack_start(scroll, True, True, 0)
         self.work_images = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        page.pack_start(self.work_images, False, False, 0)
-        row = self._row(page)
+        answers.pack_start(self.work_images, False, False, 0)
+        row = self._row(answers)
         self.work_save_button = self._button(row, '保存草稿', lambda _: self._submit_work('save'))
         self.work_submit_button = self._button(row, '正式提交当前答案', lambda _: self._submit_work('submit'), True)
         self._button(row, '编辑完整作业数据', self._edit_work)
-        page.pack_start(label('按题号查看联网状态与来源', 'section-title'), False, False, 0)
+        sources = self._panel(page, '联网状态与来源')
         self.work_sources = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        page.pack_start(self.work_sources, False, False, 0)
+        sources.pack_start(self.work_sources, False, False, 0)
         self.work_sources.pack_start(label('读取或解题后显示每题的实际联网状态与可点击来源。', 'subtitle'), False, False, 0)
         raw = Gtk.Expander(label='详情 · 原始任务数据')
         self.work_output, scroll = textbox(160)
         raw.add(scroll)
-        page.pack_start(raw, False, False, 0)
+        sources.pack_start(raw, False, False, 0)
         self._refresh_work_actions()
 
     def _reset_work_data(self, message='尚未读取题目。'):
@@ -1034,7 +1079,7 @@ class Window(Gtk.Window):
         self.sign_modes = {'normal': '普通签到', 'code': '签到码', 'gesture': '手势签到',
                            'location': '位置签到', 'qr': '二维码签到'}
         page.pack_start(label('选择活动 → 补充所需信息 → 核对并提交。地图选点和常用位置保存只修改表单。', 'subtitle'), False, False, 0)
-        card = self._sign_card(page, '1 · 选择课程活动')
+        card = self._panel(page, '课程活动')
         self.sign_course = self._course_selector(card)
         self.sign_course.connect('changed', self._sign_course_changed)
         row = self._row(card)
@@ -1068,7 +1113,7 @@ class Window(Gtk.Window):
         advanced.add(fields)
         card.pack_start(advanced, False, False, 0)
 
-        card = self._sign_card(page, '2 · 填写签到信息')
+        card = self._panel(page, '签到信息')
         row = self._row(card)
         row.pack_start(label('签到方式'), False, False, 0)
         self.sign_mode = Gtk.ComboBoxText()
@@ -1157,7 +1202,7 @@ class Window(Gtk.Window):
         self.location_name.connect('changed', lambda _: self._sign_validate())
         self.sign_mode.connect('changed', self._sign_mode_changed)
 
-        card = self._sign_card(page, '3 · 核对并提交')
+        card = self._panel(page, '核对与提交')
         self.sign_summary = label('请选择课程与活动。')
         self.sign_summary.set_max_width_chars(90)
         self.sign_summary.set_lines(4)
@@ -1170,7 +1215,7 @@ class Window(Gtk.Window):
         self.sign_notice = label('尚未执行签到。', 'subtitle')
         self.sign_notice.set_max_width_chars(70)
         row.pack_start(self.sign_notice, True, True, 0)
-        history = self._sign_card(page, '最近签到结果')
+        history = self._panel(page, '最近签到结果')
         self._button(self._row(history), '刷新本地记录', self._refresh_sign_history)
         self.sign_history_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         history.pack_start(self.sign_history_box, False, False, 0)
@@ -1181,7 +1226,7 @@ class Window(Gtk.Window):
         page.pack_start(details, False, False, 0)
         self._sign_validate()
 
-    def _sign_card(self, page, title):
+    def _panel(self, page, title):
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         card.get_style_context().add_class('card')
         card.pack_start(label(title, 'section-title'), False, False, 0)
@@ -1659,38 +1704,43 @@ class Window(Gtk.Window):
 
     def _phone(self):
         page = self.pages['phone']
-        page.pack_start(label('连接 USB 手机并允许调试。画面只在此页手动刷新或开启自动刷新后读取；请先在手机打开学习通。点击画面可操作手机。', 'subtitle'), False, False, 0)
-        row = self._row(page)
+        devices = self._panel(page, 'USB 设备')
+        devices.pack_start(label('在手机上允许 USB 调试，连接后刷新设备列表。', 'subtitle'), False, False, 0)
+        row = self._row(devices)
         self.phone_select = constrain_combo(Gtk.ComboBoxText())
         self.phone_select.set_hexpand(True)
         self.phone_select.connect('changed', self._device_changed)
         row.pack_start(self.phone_select, True, True, 0)
         self._button(row, '刷新设备', lambda b: self._request('phone_devices', done=self._devices_loaded, button=b))
+        row = self._row(devices)
         self._button(row, '打开学习通', lambda _: self._phone_call('phone_focus', {}, refresh=True), True)
         self._button(row, '打开手机窗口', lambda _: self._phone_open())
-        row = self._row(page)
+        preview = self._panel(page, '手机画面')
+        row = self._row(preview)
         self._button(row, '刷新画面', lambda _: self._phone_screen())
         self.phone_auto = Gtk.CheckButton(label='自动刷新（仅此页显示时）')
         row.pack_start(self.phone_auto, False, False, 0)
+        controls = self._panel(page, '远程操作')
+        row = self._row(controls)
         for key, title in [('BACK', '返回'), ('HOME', '主屏幕'), ('APP_SWITCH', '最近应用')]:
             self._button(row, title, lambda _, k=key: self._phone_call('phone_key', {'key': k}, refresh=True))
-        row = self._row(page)
+        row = self._row(controls)
         self.phone_text = Gtk.Entry(placeholder_text='输入英文或数字；中文请用手机键盘或独立手机窗口')
         self.phone_text.set_hexpand(True)
         row.pack_start(self.phone_text, True, True, 0)
         self._button(row, '发送文字', lambda _: self._phone_call('phone_text', {'text': self.phone_text.get_text()}, refresh=True))
-        row = self._row(page)
+        row = self._row(controls)
         self._button(row, '向上翻页', lambda _: self._phone_swipe(False))
         self._button(row, '向下翻页', lambda _: self._phone_swipe(True))
-        self.phone_note = label('尚未获取手机画面。', 'subtitle')
-        page.pack_start(self.phone_note, False, False, 0)
+        self.phone_note = label('请在手机打开学习通，刷新后可点击预览操作。', 'subtitle')
+        preview.pack_start(self.phone_note, False, False, 0)
         self.phone_image = Gtk.Image()
         self.phone_event = Gtk.EventBox()
         self.phone_event.add(self.phone_image)
         self.phone_event.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.phone_event.connect('button-press-event', self._phone_tap)
         self.phone_event.set_halign(Gtk.Align.CENTER)
-        page.pack_start(self.phone_event, True, True, 0)
+        preview.pack_start(self.phone_event, True, True, 0)
 
     def _devices_loaded(self, data):
         self.devices = data.get('devices', [])
@@ -1787,13 +1837,26 @@ class Window(Gtk.Window):
 
     def _settings(self):
         page = self.pages['settings']
-        page.pack_start(label('优先复用本机可读取的学习通已登录网页会话，无需再次填写账号密码。手机应用的私有登录状态不会因 USB 连接而自动开放。', 'subtitle'), False, False, 0)
-        row = self._row(page)
+        self.settings_sections = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
+        self.settings_sections.set_hhomogeneous(False)
+        self.settings_sections.set_vhomogeneous(False)
+        switcher = Gtk.StackSwitcher(stack=self.settings_sections)
+        switcher.set_halign(Gtk.Align.START)
+        settings_bar = self._row(page)
+        settings_bar.pack_start(switcher, False, False, 0)
+        page.pack_start(self.settings_sections, False, False, 0)
+        groups = {}
+        for name, caption in [('account', '学习通账号'), ('ai', 'AI 服务'), ('backend', '课程组件')]:
+            group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+            self.settings_sections.add_titled(group, name, caption)
+            groups[name] = group
+        account = self._panel(groups['account'], '学习通登录')
+        row = self._row(account)
         self.session_sync_button = self._button(row, '同步学习通登录状态', self._sync_session, True)
         self._button(row, '打开官方网页登录', self._open_official_login)
         self.session_notice = label('先在系统浏览器登录学习通，再点击同步。仅在你点击时读取本机会话。', 'subtitle')
         self.session_notice.set_max_width_chars(90)
-        page.pack_start(self.session_notice, False, False, 0)
+        account.pack_start(self.session_notice, False, False, 0)
         self.setting_entries = {}
         self.account_expander = Gtk.Expander(label='备用登录 · 账号密码 / Cookie 导入')
         backup = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -1805,26 +1868,43 @@ class Window(Gtk.Window):
         self._button(row, '选择文件', self._choose_cookie)
         self._button(row, '导入会话', self._import_cookie)
         self.account_expander.add(backup)
-        page.pack_start(self.account_expander, False, False, 0)
-        page.pack_start(label('AI 与联网', 'section-title'), False, False, 0)
+        account.pack_start(self.account_expander, False, False, 0)
+        ai = self._panel(groups['ai'], '模型与授权方式')
         self.ai_provider = constrain_combo(Gtk.ComboBoxText())
         self.ai_provider.append('chatgpt', 'ChatGPT 官方账号授权')
         self.ai_provider.append('api_key', 'API Key（DeepSeek、OpenAI 等）')
         self.ai_provider.set_active_id('api_key')
-        page.pack_start(self.ai_provider, False, False, 0)
-        self._chatgpt_settings(page)
+        ai.pack_start(self.ai_provider, False, False, 0)
+        official = Gtk.Revealer()
+        groups['ai'].pack_start(official, False, False, 0)
+        official_body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        official.add(official_body)
+        self._chatgpt_settings(official_body)
         self.ai_manual_expander = Gtk.Expander(label='API Key 配置 · DeepSeek、OpenAI 与其他服务')
         manual = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.ai_manual_expander.add(manual)
-        page.pack_start(self.ai_manual_expander, False, False, 0)
+        compatible = Gtk.Revealer()
+        groups['ai'].pack_start(compatible, False, False, 0)
+        api = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        api.get_style_context().add_class('card')
+        compatible.add(api)
+        api.pack_start(self.ai_manual_expander, False, False, 0)
+
+        def show_provider(combo):
+            chatgpt = combo.get_active_id() == 'chatgpt'
+            official.set_reveal_child(chatgpt)
+            compatible.set_reveal_child(not chatgpt)
+
+        self.ai_provider.connect('changed', show_provider)
+        show_provider(self.ai_provider)
         for key, title, placeholder, secret in [('api_base', 'AI API 地址', 'https://…/v1', False),
                                                ('api_key', 'AI API Key', '', True),
                                                ('model', '模型名称', '填写服务支持的模型名称', False)]:
             self.setting_entries[key] = self._entry(manual, title, placeholder, secret)
         manual_actions = self._row(manual)
-        flash_preset = self._button(manual_actions, '填入 DeepSeek Flash 与官方搜索配置', self._use_deepseek_flash)
+        flash_preset = self._button(manual_actions, 'DeepSeek Flash 预设', self._use_deepseek_flash)
         flash_preset.set_tooltip_text('会将搜索服务切为 DeepSeek 官方搜索，与模型共用官方 Key，按服务计费；仍可在搜索服务中选择免费的 bing_rss。')
-        self._button(manual_actions, 'OpenAI API Key 配置', self._use_openai_gpt)
+        self._button(manual_actions, 'OpenAI 预设', self._use_openai_gpt)
         manual.pack_start(label('API Key 模式的联网方式', 'subtitle'), False, False, 0)
         self.search_mode = constrain_combo(Gtk.ComboBoxText())
         for key, text in [('tools', '模型调用搜索工具'), ('native', '模型原生联网（Responses web_search）'), ('prefetch', '预搜索（兼容）')]:
@@ -1842,27 +1922,27 @@ class Window(Gtk.Window):
         provider.pack_start(label('deepseek 搜索使用官方 API，按供应商规则计费，可复用上方官方 AI API Key；若模型地址是第三方网关，请填写单独的 DeepSeek 官方搜索 Key。', 'subtitle'), False, False, 0)
         provider_expander.add(provider)
         manual.pack_start(provider_expander, False, False, 0)
+        network = self._panel(groups['ai'], '联网与连接测试')
         self.search_enabled = Gtk.CheckButton(label='允许模型联网')
-        page.pack_start(self.search_enabled, False, False, 0)
-        page.pack_start(label('模型可按需搜索，每题会显示实际使用情况和来源。', 'subtitle'), False, False, 0)
+        network.pack_start(self.search_enabled, False, False, 0)
+        network.pack_start(label('模型可按需搜索，每题会显示实际使用情况和来源。', 'subtitle'), False, False, 0)
         self.ai_test_notice = label('尚未测试。连接测试发送一条短消息。', 'subtitle')
         self.ai_test_notice.set_max_width_chars(90)
-        page.pack_start(self.ai_test_notice, False, False, 0)
-        row = self._row(page)
-        self._button(row, '保存设置', self._save_settings, True)
+        network.pack_start(self.ai_test_notice, False, False, 0)
+        row = self._row(network)
         self.ai_test_button = self._button(row, '测试 AI 连接', lambda _: self._save_then_start('ai_test'))
-        self._button(row, '重新读取', lambda _: self._async(self.service.settings, self._settings_loaded))
+        actions = Gtk.Box(spacing=8)
+        settings_bar.pack_end(actions, False, False, 0)
+        self._button(actions, '重新读取', lambda _: self._async(self.service.settings, self._settings_loaded))
+        self._button(actions, '保存设置', self._save_settings, True)
         self._search_mode_changed()
-        advanced = Gtk.Expander(label='高级 · 课程服务设置与安装')
-        backend = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        backend = self._panel(groups['backend'], '课程服务组件')
         for key, title, placeholder in [('backend_path', '课程服务项目路径', '包含 main.py 的 chaoxing 项目目录'),
                                         ('backend_python', '课程服务 Python', '留空则使用服务默认解释器')]:
             self.setting_entries[key] = self._entry(backend, title, placeholder)
         self._button(self._row(backend), '安装课程服务组件', lambda _: self._start('install_backend', {}))
         self.settings_paths = label('', 'subtitle')
         backend.pack_start(self.settings_paths, False, False, 0)
-        advanced.add(backend)
-        page.pack_start(advanced, False, False, 0)
         for key in ('api_base', 'model'):
             self.setting_entries[key].connect('changed', self._search_mode_changed)
         self.ai_provider.connect('changed', self._ai_provider_changed)
@@ -2276,13 +2356,18 @@ class Window(Gtk.Window):
 
     def _jobs(self):
         page = self.pages['jobs']
-        page.pack_start(label('后台任务状态与返回结果。取消会请求任务停止；已经提交的远程操作不能通过取消撤回。', 'subtitle'), False, False, 0)
+        queue = self._panel(page, '后台任务')
+        row = self._row(queue)
+        self._button(row, '刷新任务', lambda _: self._poll())
+        cancel = self._button(row, '取消选中任务', self._cancel_job)
+        cancel.set_tooltip_text('请求停止选中的任务。已提交至平台的操作仍然生效。')
         self.job_store = Gtk.ListStore(str, str, str, str)
         self.job_tree = Gtk.TreeView(model=self.job_store)
         for index, title in enumerate(('任务 ID', '任务', '状态', '进度 / 提示')):
             renderer = Gtk.CellRendererText()
             renderer.set_property('ellipsize', Pango.EllipsizeMode.END)
             renderer.set_property('max-width-chars', 65 if index == 3 else 28)
+            renderer.set_property('ypad', 8)
             column = Gtk.TreeViewColumn(title, renderer, text=index)
             column.set_resizable(True)
             column.set_min_width((125, 120, 120, 240)[index])
@@ -2292,14 +2377,12 @@ class Window(Gtk.Window):
         scroll = Gtk.ScrolledWindow()
         scroll.set_min_content_height(260)
         scroll.add(self.job_tree)
-        page.pack_start(scroll, True, True, 0)
-        row = self._row(page)
-        self._button(row, '刷新任务', lambda _: self._poll())
-        self._button(row, '取消选中任务', self._cancel_job)
+        queue.pack_start(scroll, True, True, 0)
+        details = self._panel(page, '任务详情')
         self.job_progress = Gtk.ProgressBar(show_text=True)
-        page.pack_start(self.job_progress, False, False, 0)
+        details.pack_start(self.job_progress, False, False, 0)
         self.job_output, scroll = textbox(260)
-        page.pack_start(scroll, True, True, 0)
+        details.pack_start(scroll, True, True, 0)
 
     def _poll(self):
         if self.closed or self.closing:

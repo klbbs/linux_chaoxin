@@ -1,6 +1,6 @@
-# 学习通 Linux 工作台 · 0.5.2
+# 学习通 Linux 工作台 · 0.6.0
 
-独立的 Linux 桌面前端，集中管理 **课程后台任务、联网 AI 作业、签到和 USB 手机控制**。界面采用 GTK3；账号功能通过独立 Python 3.13 后端接入现有开源实现，手机功能通过已经授权的 ADB/scrcpy 连接。
+面向学习通用户的 GTK 桌面工作台。首页可进入课程、作业、复习资料和签到，侧栏可随时切换页面。课程服务使用独立的 Python 3.13 后端，手机控制通过已授权的 USB 设备连接。
 
 手机连接与网站登录是两个独立入口。普通 USB 调试不能读取正式版学习通的私有登录文件；本项目自动复用本机Firefox或原有学习后端的有效网页会话，另保留备用导入入口，不声称已提取手机内部消息接口或绕过设备验证。
 
@@ -32,12 +32,12 @@
 在「设置」页面同步学习通，并配置AI：
 
 1. 点击「同步学习通登录状态」或「刷新课程」，自动复用本机已登录会话。首次使用或会话失效时，在本机 Firefox 打开学习通官网，用官方扫码登录后再同步；无需在工作台填写账号密码。账号密码和手动Cookie导入只作为折叠备用入口。
-2. 使用 ChatGPT 时，在设置中点击「使用 ChatGPT 继续」，在浏览器登录并授权套餐用量。支持符合条件的套餐。使用 DeepSeek 或其他兼容服务时，选择 API Key 方式并填写服务地址与模型。
+2. 使用 ChatGPT 时，打开「设置 → AI 服务」，选择「ChatGPT 官方账号授权」，点击「使用 ChatGPT 继续」，在浏览器登录并授权套餐用量。支持符合条件的套餐。使用 DeepSeek 或其他兼容服务时，选择 API Key 方式并填写服务地址与模型。
 3. 联网模式默认「模型调用搜索工具」：勾选允许联网后，模型可自行调用搜索；搜索后端可用 `bing_rss`（无需Key）、`duckduckgo` 、`tavily` 或 `deepseek`。也可选择「模型原生联网」，需要模型服务支持 Responses 的 `web_search`；此模式不使用本机搜索Key。允许联网不保证模型每题都会搜索，结果显示实际调用和来源。点击「测试 AI 连接」只测试模型API，不会发起搜索。
 
 DeepSeek官方Flash填 `https://api.deepseek.com`、`deepseek-flash`，联网选「模型调用搜索工具」。它的API不支持原生 `web_search`；可使用现有搜索服务，也可选官方DeepSeek搜索，详见 [AI配置说明](docs/AI-PROVIDERS.md)。
 
-已有课程后端的用户可在设置中指定源码与解释器路径。旧 Cookie 仅复制到新数据目录，原文件不改动；有效性以「刷新课程」结果为准。新学习通会话可从浏览器同步；AI密钥在本机设置填写，不需要写入源码。
+已有课程后端的用户可在「设置 → 课程组件」指定源码与解释器路径。旧 Cookie 仅复制到新数据目录，原文件不改动；有效性以「刷新课程」结果为准。新学习通会话可从浏览器同步；AI密钥在本机设置填写，不需要写入源码。
 
 ### 完成作业
 
@@ -53,7 +53,7 @@ DeepSeek官方Flash填 `https://api.deepseek.com`、`deepseek-flash`，联网选
 
 ### 导出课程复习资料
 
-先在「设置」保存 AI 配置。打开「复习资料」，选择课程和保存目录，再点击「用 AI 生成 Word 和 PDF」。工作台这时才读取课程并调用模型，成功后将两份文档保存到同一子目录。打开页面和刷新课程列表不会生成备份。
+先在「设置 → AI 服务」保存 AI 配置。打开「复习资料」，选择课程和保存目录，再点击「用 AI 生成 Word 和 PDF」。工作台这时才读取课程并调用模型，成功后将两份文档保存到同一子目录。打开页面和刷新课程列表不会生成备份。
 
 导出需要 LibreOffice Writer。中文字体推荐 Noto CJK。PDF 资料文字提取使用 `pdftotext`，旧版 DOC/PPT 可选安装 `antiword` / `catdoc`。具体收录范围见 [课程复习资料](docs/COURSE-REVIEW.md)。
 
@@ -92,7 +92,7 @@ DeepSeek官方Flash填 `https://api.deepseek.com`、`deepseek-flash`，联网选
 已验证 Ubuntu 24.04 / Intel x86_64。源码安装命令在克隆后的仓库根目录执行。
 
 ```bash
-sudo apt install python3 python3-gi gir1.2-gtk-3.0 python3-dbus python3-cryptography
+sudo apt install python3 python3-gi gir1.2-gtk-3.0 python3-dbus python3-cryptography python3-gi-cairo
 bash scripts/install-local.sh
 ~/.local/bin/chaoxing-linux
 ```
@@ -101,7 +101,7 @@ bash scripts/install-local.sh
 
 ```bash
 sha256sum -c SHA256SUMS
-sudo apt install ./chaoxing-linux_0.5.2_all.deb
+sudo apt install ./chaoxing-linux_0.6.0_all.deb
 ```
 
 手机模式第一次使用点击「安装手机连接工具」，或普通用户执行 `python3 scripts/install-phone-tools.py --apply`。固定 scrcpy 5.0.1 官方 x86_64 归档经过 SHA256 核对，已有系统 ADB 优先复用。
@@ -119,9 +119,9 @@ python3 scripts/install-study-backend.py --apply --python /absolute/path/to/pyth
 
 ## 版本管理
 
-当前源码基线为 `v0.5.2`。从这个版本起，稳定版本在 `main` 上使用 `v主版本.次版本.修订号` 标签。早期版本的变化见 [更新记录](docs/CHANGELOG.md)。
+自 `v0.5.2` 起，稳定版本在 `main` 上使用 `v主版本.次版本.修订号` 标签。早期版本的变化见 [更新记录](docs/CHANGELOG.md)。
 
-发布前同步更新应用版本、打包脚本、打包测试和文档，运行下方测试并构建 deb。维护者在通过验证的提交上创建附注标签，与 `main` 一起推送。GitHub 会核对标签、应用和安装包版本，并在 Releases 提供安装包及 SHA256 校验文件。
+发布前更新 `src/chaoxing_linux/__init__.py` 中的版本号和更新记录，运行下方测试并构建 deb。打包脚本直接读取应用版本。维护者在通过验证的提交上创建附注标签，与 `main` 一起推送。GitHub 会核对标签、应用和安装包版本，并在 Releases 提供安装包及 SHA256 校验文件。
 
 ## 开发与命令
 
@@ -153,7 +153,7 @@ chaoxing-linux --legacy-launcher
 | `~/.local/share/chaoxing-linux/study-backend/` | 可选独立后端的 source 与 .venv |
 | `$XDG_RUNTIME_DIR/chaoxing-linux/` | 手机预览、手机和兼容模式运行日志 |
 
-主项目使用系统 Python/GTK，不将第三方后端导入 GTK 主进程。账号、密钥不放在子进程命令行，任务记录经过脱敏；任务中断后不会在下次启动时自动重放提交。完整架构见 [ARCHITECTURE](docs/ARCHITECTURE.md)，AI 配置见 [AI-PROVIDERS](docs/AI-PROVIDERS.md)，测试见 [版本验证摘要](docs/validation/release-0.5.2.json)。
+主项目使用系统 Python/GTK，不将第三方后端导入 GTK 主进程。账号、密钥不放在子进程命令行，任务记录经过脱敏；任务中断后不会在下次启动时自动重放提交。完整架构见 [ARCHITECTURE](docs/ARCHITECTURE.md)，AI 配置见 [AI-PROVIDERS](docs/AI-PROVIDERS.md)，本次测试见 [0.6.0 界面与发布验证](docs/validation/release-0.6.0.json)。
 
 ## 卸载
 

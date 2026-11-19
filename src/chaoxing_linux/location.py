@@ -11,7 +11,9 @@ import time
 import urllib.parse
 import urllib.request
 
-USER_AGENT = "ChaoxingLinux/0.5.2 (Linux desktop interactive map picker)"
+from . import __version__
+
+USER_AGENT = f"ChaoxingLinux/{__version__} (Linux desktop interactive map picker)"
 PHOTON_URL = "https://photon.komoot.io"
 _A, _EE = 6378245.0, 0.00669342162296594323
 

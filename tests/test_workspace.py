@@ -93,6 +93,15 @@ class WorkspaceTests(unittest.TestCase):
         self.assertFalse(self.window.phone_auto.get_active())
         self.assertEqual(self.window.setting_entries['backend_path'].get_text(), '/tmp/backend')
 
+    def test_navigation_stays_selected_when_entering_ai_settings_from_review(self):
+        self.window.nav_buttons['review'].clicked()
+        self.assertEqual(self.window.stack.get_visible_child_name(), 'review')
+        self.window.review_panel.open_ai_settings()
+        self.assertEqual(self.window.stack.get_visible_child_name(), 'settings')
+        self.assertEqual(self.window.settings_sections.get_visible_child_name(), 'ai')
+        self.assertTrue(self.window.nav_buttons['settings'].get_active())
+        self.assertFalse(self.window.nav_buttons['review'].get_active())
+
     def test_review_export_routes_the_selected_course_and_shows_partial_result(self):
         panel = self.window.review_panel
         self.window.stack.set_visible_child_name('review')
