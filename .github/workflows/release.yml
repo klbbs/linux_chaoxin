@@ -2,34 +2,63 @@ name: Publish Debian package
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['.github/workflows/release.yml']
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: publish-debian-package
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.source.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Build and verify the tagged package
+          fetch-depth: 0
+      - name: Resolve the published source tag
+        id: source
         env:
           PYTHONPATH: src
         run: |
           set -euo pipefail
           version=$(python3 -c 'from chaoxing_linux import __version__; print(__version__)')
-          test "$GITHUB_REF_NAME" = "v$version"
+          tag="v$version"
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            test "$GITHUB_REF_NAME" = "$tag"
+          elif ! git show-ref --verify --quiet "refs/tags/$tag"; then
+            exit 0
+          fi
+          git merge-base --is-ancestor "refs/tags/$tag" HEAD
+          git checkout --detach "refs/tags/$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Build and verify the tagged package
+        if: steps.source.outputs.tag
+        env:
+          RELEASE_TAG: ${{ steps.source.outputs.tag }}
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'from chaoxing_linux import __version__; print(__version__)')
+          test "$RELEASE_TAG" = "v$version"
           bash scripts/build-deb.sh
           cd dist
           pkg="chaoxing-linux_${version}_all.deb"
           test "$(dpkg-deb -f "$pkg" Version)" = "$version"
           sha256sum "$pkg" > SHA256SUMS
       - uses: actions/upload-artifact@v4
+        if: steps.source.outputs.tag
         with:
           name: debian-package
           path: dist/
           if-no-files-found: error
   publish:
     needs: build
+    if: needs.build.outputs.tag
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -40,7 +69,11 @@ jobs:
           path: dist
       - name: Publish installer and checksum
         env:
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.deb dist/SHA256SUMS \
-            --repo "$GITHUB_REPOSITORY" --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" dist/*.deb dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --title "$RELEASE_TAG" --generate-notes
